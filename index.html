@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Image Jackpot</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#111827; color:#e5e7eb; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.app { max-width:900px; width:100%; padding:20px; box-sizing:border-box; }
+.card { background:#020617; border-radius:16px; padding:20px 24px; box-shadow:0 10px 30px rgba(0,0,0,.5); border:1px solid #1f2937; }
+h1 { margin:0 0 4px; font-size:28px; }
+.subtitle { margin:0 0 16px; color:#9ca3af; }
+.section-title { margin:16px 0 8px; font-weight:600; }
+.row { display:flex; flex-wrap:wrap; gap:16px; }
+.col { flex:1 1 200px; }
+label { display:block; font-size:14px; margin-bottom:4px; }
+input[type="number"], input[type="text"] { width:100%; padding:8px 10px; border-radius:8px; border:1px solid #374151; background:#020617; color:#e5e7eb; box-sizing:border-box; }
+input[type="number"]:focus, input[type="text"]:focus { outline:none; border-color:#60a5fa; }
+button { border:none; border-radius:999px; padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; background:#22c55e; color:#022c22; transition:transform .05s ease, box-shadow .05s ease, background .1s ease; }
+button:disabled { opacity:.4; cursor:not-allowed; }
+button:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 20px rgba(34,197,94,.35); }
+button.secondary { background:#111827; color:#e5e7eb; border:1px solid #374151; box-shadow:none; }
+button.secondary:hover:not(:disabled) { background:#1f2937; box-shadow:0 4px 12px rgba(0,0,0,.5); }
+.dropzone { border:2px dashed #4b5563; border-radius:14px; padding:18px; text-align:center; cursor:pointer; background:#020617; transition:border-color .15s ease, background .15s ease; }
+.dropzone.dragover { border-color:#22c55e; background:rgba(34,197,94,.1); }
+.dropzone p { margin:4px 0; font-size:14px; }
+.dropzone small { color:#9ca3af; }
+.preview-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; max-height:150px; overflow:auto; }
+.preview-grid img { width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #374151; }
+.badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; background:#0b1120; padding:2px 10px; font-size:12px; color:#9ca3af; border:1px solid #1f2937; }
+.badge-dot { width:7px; height:7px; border-radius:999px; background:#22c55e; }
+.chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 9px; border-radius:999px; background:#111827; border:1px solid #374151; color:#9ca3af; }
+.chip strong { color:#e5e7eb; }
+.top-bar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+#setup-screen { display:block; }
+#game-screen { display:none; }
+.reels-wrapper { display:flex; justify-content:center; gap:12px; margin:24px 0 16px; }
+.reel { width:140px; height:140px; border-radius:16px; border:2px solid #4b5563; background:#020617; display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,.7); }
+.reel img { width:100%; height:100%; object-fit:cover; }
+#result { text-align:center; min-height:24px; font-size:16px; margin-bottom:10px; }
+.result-good { color:#22c55e; }
+.result-ok { color:#facc15; }
+.result-none { color:#9ca3af; }
+.controls-row { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+@media (max-width:640px){ .reel { width:95px; height:95px; } .app { padding:12px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <div class="top-bar">
+      <div>
+        <h1>Image Jackpot</h1>
+        <p class="subtitle">Drop in any pictures you like, set the points, spin, and call out the result.</p>
+      </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>All images stay on this device</span>
+      </div>
+    </div>
+
+    <!-- SETUP SCREEN -->
+    <div id="setup-screen">
+      <div class="section-title">1. Add images</div>
+      <div class="row">
+        <div class="col">
+          <div id="dropzone" class="dropzone">
+            <p><strong>Drag & drop</strong> images here</p>
+            <p>or click to choose files</p>
+            <small>Use any pictures from your computer</small>
+            <input id="file-input" type="file" accept="image/*" multiple style="display:none" />
+          </div>
+        </div>
+        <div class="col">
+          <label>Loaded images</label>
+          <div id="image-count" style="font-size:14px; color:#9ca3af;">No images yet</div>
+          <div id="preview-grid" class="preview-grid"></div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="clear-images" class="secondary" type="button">Clear images</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">2. Set points</div>
+      <div class="row">
+        <div class="col">
+          <label for="points-two">Points for 2 matching images</label>
+          <input id="points-two" type="number" min="0" value="1" />
+        </div>
+        <div class="col">
+          <label for="points-three">Points for 3 matching images</label>
+          <input id="points-three" type="number" min="0" value="3" />
+        </div>
+      </div>
+
+      <div style="margin-top:18px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="chip">
+          <span>✔</span>
+          <span style="white-space:nowrap;"><strong>Tip:</strong> Teacher keeps score manually</span>
+        </div>
+        <button id="start-game" type="button" disabled>Start game</button>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div class="chip">
+          <span>🎯</span>
+          <span id="rules-summary"></span>
+        </div>
+        <button id="back-to-setup" class="secondary" type="button">Change images / points</button>
+      </div>
+
+      <div class="reels-wrapper">
+        <div class="reel"><img id="reel-0" alt="Reel 1" /></div>
+        <div class="reel"><img id="reel-1" alt="Reel 2" /></div>
+        <div class="reel"><img id="reel-2" alt="Reel 3" /></div>
+      </div>
+
+      <div id="result"></div>
+
+      <div class="controls-row">
+        <button id="spin" type="button">Spin</button>
+      </div>
+
+      <p style="margin-top:14px; font-size:13px; text-align:center; color:#9ca3af;">
+        After each spin, announce the result and let players add the points themselves.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let images = [];
+  let pointsTwo = 1;
+  let pointsThree = 3;
+  let spinning = false;
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("file-input");
+  const previewGrid = document.getElementById("preview-grid");
+  const imageCount = document.getElementById("image-count");
+  const clearBtn = document.getElementById("clear-images");
+  const startGameBtn = document.getElementById("start-game");
+  const setupScreen = document.getElementById("setup-screen");
+  const gameScreen = document.getElementById("game-screen");
+  const rulesSummary = document.getElementById("rules-summary");
+  const backToSetup = document.getElementById("back-to-setup");
+  const spinBtn = document.getElementById("spin");
+  const resultEl = document.getElementById("result");
+  const reelImgs = [
+    document.getElementById("reel-0"),
+    document.getElementById("reel-1"),
+    document.getElementById("reel-2")
+  ];
+  const pointsTwoInput = document.getElementById("points-two");
+  const pointsThreeInput = document.getElementById("points-three");
+
+  function updateImageCount() {
+    if (!images.length) {
+      imageCount.textContent = "No images yet";
+      startGameBtn.disabled = true;
+    } else {
+      imageCount.textContent = images.length + " image" + (images.length === 1 ? "" : "s") + " loaded";
+      startGameBtn.disabled = images.length < 2;
+    }
+  }
+
+  function renderPreviews() {
+    previewGrid.innerHTML = "";
+    images.forEach(i => {
+      const img = document.createElement("img");
+      img.src = i.url;
+      img.alt = i.name || "image";
+      previewGrid.appendChild(img);
+    });
+  }
+
+  function handleFiles(fileList) {
+    const newFiles = Array.from(fileList || []).filter(f => f.type.startsWith("image/"));
+    newFiles.forEach(f => {
+      const url = URL.createObjectURL(f);
+      images.push({ url, name: f.name });
+    });
+    updateImageCount();
+    renderPreviews();
+  }
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", e => { e.preventDefault(); dropzone.classList.remove("dragover"); });
+  dropzone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+  clearBtn.addEventListener("click", () => {
+    images.forEach(i => URL.revokeObjectURL(i.url));
+    images = [];
+    renderPreviews();
+    updateImageCount();
+  });
+
+  startGameBtn.addEventListener("click", () => {
+    pointsTwo = parseInt(pointsTwoInput.value, 10);
+    pointsThree = parseInt(pointsThreeInput.value, 10);
+    if (isNaN(pointsTwo)) pointsTwo = 0;
+    if (isNaN(pointsThree)) pointsThree = 0;
+    rulesSummary.textContent = "2 of a kind = " + pointsTwo + " pts, 3 of a kind = " + pointsThree + " pts";
+    if (images.length > 0) {
+      for (let i = 0; i < 3; i++) {
+        const idx = Math.floor(Math.random() * images.length);
+        reelImgs[i].src = images[idx].url;
+      }
+    }
+    resultEl.textContent = "";
+    resultEl.className = "";
+    setupScreen.style.display = "none";
+    gameScreen.style.display = "block";
+  });
+
+  backToSetup.addEventListener("click", () => {
+    gameScreen.style.display = "none";
+    setupScreen.style.display = "block";
+  });
+
+  spinBtn.addEventListener("click", () => {
+    if (spinning || images.length === 0) return;
+    spinning = true;
+    resultEl.textContent = "Spinning...";
+    resultEl.className = "";
+    const chosenIdx = [0,0,0];
+    let elapsed = 0;
+    const duration = 1100;
+    const interval = 80;
+    const timer = setInterval(() => {
+      for (let i = 0; i < 3; i++) {
+        const idx = Math.floor(Math.random() * images.length);
+        chosenIdx[i] = idx;
+        reelImgs[i].src = images[idx].url;
+      }
+      elapsed += interval;
+      if (elapsed >= duration) {
+        clearInterval(timer);
+        spinning = false;
+        showResult(chosenIdx);
+      }
+    }, interval);
+  });
+
+  function showResult(idx) {
+    const [a,b,c] = idx;
+    let text, cls;
+    if (a === b && b === c) {
+      text = pointsThree ? `3 of a kind! Worth ${pointsThree} points.` : "3 of a kind!";
+      cls = "result-good";
+    } else if (a === b || a === c || b === c) {
+      text = pointsTwo ? `2 of a kind! Worth ${pointsTwo} points.` : "2 of a kind!";
+      cls = "result-ok";
+    } else {
+      text = "No match this time.";
+      cls = "result-none";
+    }
+    resultEl.textContent = text;
+    resultEl.className = cls;
+  }
+
+  updateImageCount();
+})();
+</script>
+</body>
+</html>
